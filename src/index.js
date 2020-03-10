@@ -1,118 +1,96 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import React from 'react';
+import ReactDOM from 'react-dom';
 
+const fetchPokemon = id => 
+fetch(
+  `https://pokeapi.co/api/v2/pokemon/${id}/`
+).then(res => res.json());
 
-const fetchPokemon = id =>
-  fetch(
-    `https://pokeapi.co/api/v2/pokemon/${id}/`
-  ).then(res => res.json());
+const withPokemon = Component => 
 
+  class FetchPokemon extends React.Component {
+    constructor() {
+      super();
+      this.state = { chatacter: null }
+    }
 
+    static defaultProps = {
+      renderLoading: () => <div>Loading ... </div>
+    }
 
-class Pokemon extends React.Component {
+    componentDidMount() {
+      fetchPokemon(this.props.id).then(data => 
+      this.setState({ character: data })
+      );
+    }
+    componentWillReceiveProps(nextProps) {
+      fetchPokemon(nextProps.id).then(data => 
+        this.setState({ character: data}))
+    }
+    render() {
+      return this.state.character ? (
+        <Component character={this.state.character} />
+      ) : (this.props.renderLoading()
+      );
+    }
+  }
+
+  const Pokemon = props => (
+    <div>
+      <h1>{props.character.name}</h1>
+      <ul>
+        {props.character.abilities.map(ability => (
+          <li key={ability.ability.name}>
+            {ability.ability.name}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+ 
+
+class IdPager extends React.Component {
   constructor() {
     super();
-    this.state = { character: null };
+    this.state = { id: 1 }
   }
-  componentDidMount() {
-    fetchPokemon(this.props.id).then(data =>
-      this.setState({ character: data })
-    );
-  }
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    fetchPokemon(nextProps.id).then(data =>
-      this.setState({ character: data })
-    );
-  }
-
   render() {
-    return this.state.character ? (
-      <div>
-        <h3>{this.state.character.name}</h3>
-        <ul>
-          {this.state.character.abilities.map(ability => (
-            <li key={ability.ability.name}>
-              {ability.ability.name}
-            </li>
-          ))}
-        </ul>
-      </div>
-    ) : (
-        <div>Loading...</div>
-      );
+    return this.props.render(
+      { id: this.state.id },
+      {
+        increment: () => this.setState(prevState => ({ 
+          id: prevState.id + 1 
+        })),
+        decrement: () => this.setState(prevState => ({ 
+          id: prevState.id - 1 
+        }))
+      }
+    );
   }
 }
 
-/*class IdPager extends React.Component {
-  constructor() {
-    super();
-    this.state = { id: 1 };
-  }
+const FetchPokemon = withPokemon(Pokemon)
 
-  render() {
-    return (
-      <div>
-        <h1>{this.state.id}</h1>
-        <button
-          type="button"
-          onClick={() =>
-            this.setState(prevState => ({
-              id: prevState - 1
-            }))}
-        >
-          Previous
-          </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            this.setState(prevState => ({
-              id: prevState + 1
-            }))}
-        >
-          Next
-          </button>
-
-        <this.props.component id={this.state.id} />
-      </div>
-    );
-  }
-} */
-
-class PokemonPager extends React.Component {
-  constructor() {
-    super();
-    this.state = {id: 1};
-  }
-
-  render() {
-    return(
+ReactDOM.render(
+  <IdPager render = {(props, actions) => (
     <div>
-      <h1>{this.state.id}</h1>
       <button
         type="button"
-        onClick={() => this.setState(prevState => ({
-          id: prevState - 1
-        }))}
-      >
-        Previous
-    </button>
-    <button
-    type="button" 
-          onClick={() => this.setState(prevState => ({
-            id: prevState + 1
-          }))} 
-          >
-          Next
-    </button>
-      <Pokemon id={this.state.id} />
+        onClick={actions.decrement} 
+        >Previous
+        </button>
+      <button
+        type="button"
+        onClick={actions.increment} 
+        >
+        Next
+      </button>
+    <FetchPokemon 
+    renderLoading={() => <h1>Fetching Pokemon!</h1> } 
+    id={props.id} 
+    /> 
     </div>
-    );
-  }
-}
-    
-    
-  ReactDOM.render(
-  <PokemonPager />,
+    )} 
+  />, 
   document.getElementById("root")
-);
+  );
